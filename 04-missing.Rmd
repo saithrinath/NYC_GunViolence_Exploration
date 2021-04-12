@@ -1,1 +1,66 @@
 # Missing values
+
+# Missing values
+# Data sources
+
+shooting <- read.csv("NYPD_Shooting_Incident_Data__Historic_.csv")
+shooting
+
+holidays <- read.csv("US Holiday Dates.csv")
+holidays
+
+
+# Data transformation
+
+```{r}
+library(naniar)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+```
+
+
+```{r}
+
+shooting[shooting==""]<-NA
+shooting <- shooting[!(shooting$PERP_AGE_GROUP=='1020' || shooting$PERP_AGE_GROUP=='224' || shooting$PERP_AGE_GROUP=='940'),]
+
+#extracting atomic variables from date.
+
+shooting$OCCUR_DATE <- as.POSIXct(shooting$OCCUR_DATE, format = "%m/%d/%Y")
+shooting$year <- format(as.Date(shooting$OCCUR_DATE), "%Y")
+shooting$month <- format(as.Date(shooting$OCCUR_DATE), "%m")
+shooting$day <- format(as.Date(shooting$OCCUR_DATE), "%d")
+shooting$weekday <- weekdays(as.Date(shooting$OCCUR_DATE))
+
+shooting = shooting[order(shooting$OCCUR_DATE),]
+
+#plots for missing values distribution
+
+
+vis_miss(shooting)
+
+gg_miss_upset(shooting)
+
+
+#we see the missing proportion of perpetrator data kept increasing. We confirm that by the following analysis
+
+
+missing_data<-shooting %>%
+  dplyr::group_by(year)%>%
+  dplyr::summarise(total = n())
+
+missing_data$missing<-aggregate(PERP_AGE_GROUP ~ year, data=shooting, function(x) {sum(is.na(x))}, na.action = NULL)$PERP_AGE_GROUP
+missing_data$not_missing <- missing_data$total - missing_data$missing
+missing_data <- missing_data[,c("year", "missing", "not_missing")]
+missing_data <- missing_data %>% pivot_longer(!year, names_to = "availability", values_to = "value")
+
+ggplot(missing_data, aes(fill=availability, x=year, y=value))+
+  geom_bar(position = "fill", stat = "identity")+
+ ggtitle('Distribution  of missing and non-missing data for perpetrators over years')+
+  xlab('year') +
+  ylab('percentage')+
+  theme(plot.title = element_text(hjust=0.5))
+  
+
+```
