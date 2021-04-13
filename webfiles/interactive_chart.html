@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<style>
+
+    *{
+      font-family: Lato;
+    }
+
+/*    .axis-x path {
+      stroke: #000;
+    }*/
+
+    .line {
+      fill: none;
+      stroke-width: 1.5px;
+      stroke-linejoin: "round";
+      stroke-linecap: "round";
+    }
+
+/*    .line:hover {
+      stroke-width: 2px;
+    }
+*/
+/*    #container{
+    display: flex;
+    flex-wrap: wrap;
+    }*/
+    /*#headline{
+      min-width:100%;
+    }
+*/
+/*    #menu{
+      display: inline;
+      width: 100%;
+    }
+*/
+    #nation{
+      display: inline;
+      padding-left: 1%;
+    }
+
+    .radiobuttons{
+      display: inline;
+      padding-left: 10%;
+    }
+
+    .text-boxes-explanation{
+      padding-left: 1%;
+    }
+
+/*    span{
+      color:rgb(25, 159, 139)
+    }*/
+
+
+
+  </style>
+
+<div class="text-boxes-explanation">
+    <p>You will see a Graph below when: <br>
+        <li class="text-boxes-explanation"> You select a Borough</li>
+        <li class="text-boxes-explanation"> You select one or more years</li></p>
+
+<script src="https://d3js.org/d3.v4.js"></script>
+
+<!-- Initialize a radio button one for each BORO -->
+
+<div class="text-boxes-explanation">
+    <p>Choose a Borough you want to Explore. </p>
+
+
+</div>
+
+
+<div class="radiobuttons">
+  <input type="radio" name="BORO" value="BRONX" onclick="mydataset1('b')"> Bronx
+  <input type="radio" name="BORO" value="BROOKLYN" onclick="mydataset1('bb')"> Brooklyn
+  <input type="radio" name="BORO" value="MANHATTAN" onclick="mydataset1('m')"> Manhattan
+  <input type="radio" name="BORO" value="QUEENS" onclick="mydataset1('q')"> Queens
+  <input type="radio" name="BORO" value="STATEN ISLAND" onclick="mydataset1('s')"> Staten Island
+</div>
+
+</div>
+
+
+<!--   <div class="graph">
+    <svg width="800" height="500"></svg>
+  </div>
+   -->
+</div>
+
+
+
+<div class="text-boxes-explanation">
+    <p>Choose one or more years after you select the Borough.</p>
+
+
+<!-- Color Scale -->
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+
+<script>
+
+
+//Read the  required dataset 
+function mydataset1(whatfileisthis) {
+  
+  d3.selectAll("svg").remove();
+  d3.selectAll("#menu").remove();
+  var divCreator=function (id){
+    newElement=document.createElement("div");
+    newNode=document.body.appendChild(newElement);
+    newNode.setAttribute("id",id);
+  }
+  divCreator("menu");
+  var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.setAttribute('width', '800');
+            svg.setAttribute('height', '500');
+            document.body.appendChild(svg);
+ 
+ svg = d3.select("svg"),
+      margin = {
+        top: 30,
+        right: 80,
+        bottom: 40,
+        left: 50
+      },
+      width = 800 - margin.left - margin.right,
+      height = 400 - margin.top - margin.bottom,
+      g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    //define time format
+    var parseTime = d3.timeParse("%m");
+
+
+    //define scales
+    let x = d3.scaleLinear().domain([1, 12]).range([0, width]);
+    let y = d3.scaleLinear().range([height, 0]),
+        z = d3.scaleOrdinal(d3.schemeCategory20);
+
+    //define line generator
+    let line = d3.line()
+      .curve(d3.curveBasis)
+      .x(function(d) {
+        return x(d.month);
+      })
+      .y(function(d) {
+          return y(d.num_shootings);
+      });
+
+
+  data = d3.csv("https://raw.githubusercontent.com/saithrinath/NYC_GunViolence_Exploration/main/data/" + whatfileisthis + ".csv", type,function(error, data) {
+      if (error) throw error;
+
+      //parse data
+      var countries = data.columns.slice(3).map(function(id) {
+        return {
+          id: id,
+          values: data.map(function(d) {
+            return {
+              month: d.month,
+              num_shootings: d[id]
+
+            };
+
+
+          })
+        };
+      });
+
+
+      //define x axis
+      x.domain(d3.extent(data, function(d) {
+        return d.month;
+      }));
+
+      //define y axis
+      y.domain([
+        d3.min(countries, function(c) {
+          return d3.min(c.values, function(d) {
+            return d.num_shootings;
+          });
+        }),
+      d3.max(countries, function(c) {
+          return d3.max(c.values, function(d) {
+            return d.num_shootings;
+          });
+        })
+      ]);
+
+      //define color scale
+      z.domain(countries.map(function(c) {
+        return c.id;
+      }));
+
+      //append x axis
+      g.append("g")
+        .attr("class", "axis axis-x")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x))
+        .append("text")
+        .attr("y", 20)
+        .attr("x", 310)
+        .attr("dy", "0.9em")
+        .attr("fill", "#000")
+        .text("Month")
+        .append("text")
+    
+
+      //append y axis
+      g.append("g")
+        .attr("class", "axis axis-y")
+        .call(d3.axisLeft(y))
+        .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", -50)
+        .attr("x", -125)
+        .attr("dy", "0.9em")
+        .attr("fill", "#000")
+        .text("Number of Shootings");
+
+      let country = g.selectAll(".country")
+        .data(countries)
+        .enter()
+        .append("g")
+        .attr("class", "country")
+
+
+      country.append("path")
+        .attr("class", "line")
+        .attr('id', function(d){ return 'line-' + d.id })
+        .attr("d", function(d) {return line(d.values); })
+        .style("stroke", function(d) {return z(d.id);})
+        .attr("opacity", 0);
+
+
+
+      var longY = function (d) {return d.value.month.length};
+      var longE = function (d) {return d.value.month.length};
+
+      country.append("text")
+        .datum(function(d) { return {id: d.id, value: d.values[d.values.length - 1]}; })
+        .attr("transform", function(d) { return "translate(" + x(d.value.month) + "," + y(d.value.num_shootings) + ")"; })
+        .attr("x", 3)
+        .attr('id', function(d){ return 'text-' + d.id })
+        .attr("dy", "0.35em")
+        .style("font", "11px sans-serif")
+        .attr("opacity", 0)
+        .text(function(d) { return d.id; });
+
+
+
+      for (let i = 0; i < countries.length; i++) {
+        var tick = document.createElement('input');
+        tick.type = 'checkbox';
+        tick.id = 'myCheckbox';
+        tick.name = countries[i].id;
+        tick.value = countries[i].id;
+
+        var label = document.createElement('label');
+        label.for = countries[i].id
+        label.appendChild(document.createTextNode(countries[i].id));
+        var divcheck = document.createElement('div');
+        divcheck.id="nation";
+        console.log(divcheck)
+        console.log(tick)
+        divcheck.appendChild(tick);
+        divcheck.appendChild(label);
+        document.getElementById("menu").appendChild(divcheck);
+
+        tick.addEventListener("click", function() {
+          console.log(this.value)
+          var lineSelected = this.value;
+          var svgline = d3.select('#line-' + lineSelected);
+          var textline = d3.select('#text-' + lineSelected); 
+          console.log(svgline);
+          console.log(textline);
+
+          if(svgline.attr('opacity') === '0') {
+            svgline.attr('opacity', 1);
+          } else {
+            svgline.attr('opacity', 0);
+          }
+
+          if(textline.attr('opacity') === '0') {
+            textline.attr('opacity', 1);
+          } else {
+            textline.attr('opacity', 0);
+          }
+          this.style.background = '#555';
+          this.style.color = 'white';
+
+        });
+      }
+
+
+
+    });
+
+}
+
+function type(d, _, columns) {
+      for (var i = 1, n = columns.length, c; i < n; ++i) d[c = columns[i]] = +d[c];
+      return d;
+    }
+
+
+</script>
